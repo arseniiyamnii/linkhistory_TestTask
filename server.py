@@ -11,9 +11,12 @@ class DBMS():
     #need test
     #function to sending something to REDIS
     def sendToDB(self, content):
+        print(content[0])
         timeStamp=int(time.time()) #get current time
-        contentJson=json.dumps(content)
-        self.db.set(timeStamp, contentJson)
+        for i in content:
+            self.db.lpush(timeStamp,i)
+        #contentJson=json.dumps(content)
+        #self.db.set(timeStamp, contentJson)
     #need test
     #function to search and return something from REDIS
     def searchAndReturnFromDB(self, timeFrom, timeTo):
@@ -21,18 +24,20 @@ class DBMS():
         indexingKeys=self.db.keys("*")
         indexingKeys=list(map(int,indexingKeys))
         indexingKeys.sort()
-        #for i in indexingKeys:
-        #    i=i.decode('utf-8')
         print(indexingKeys)
         from_bound=bisect.bisect_left(indexingKeys, int(timeFrom))
         to_bound=bisect.bisect_right(indexingKeys, int(timeTo))
         print("indexing ready")
         allNeededKeys=indexingKeys[from_bound:to_bound]
-        print(allNeededKeys)
+        print("all needed keys is: ",allNeededKeys)
         allValues=[]
         for oneKey in allNeededKeys:
-            allValues.append(self.db.get(str(oneKey)))
-        print(allValues)
+            for i in range(0,self.db.llen(str(oneKey))):
+                allValues.append(self.db.lindex(str(oneKey),i))
+            #allValues.append(self.db.get(str(oneKey)))
+            #print(self.db.get(str(oneKey)))
+        
+        print(allValues[0])
 
 db=DBMS() #initialise Redis
 app = Flask(__name__) #initialise Flask
@@ -58,7 +63,8 @@ def visited_domains():
 def visited_links():
     global db
     content=request.get_json()
-    db.sendToDB(content)
+    db.sendToDB(content['links'])
+    #print(content['links'])
     return('DONE')
 if __name__ == '__main__':
     app.run(debug=True)
