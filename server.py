@@ -4,6 +4,7 @@ import redis
 import json
 import time
 import bisect
+from urllib.parse import urlparse
 class DBMS():
     def __init__(self):
         self.db=redis.StrictRedis('localhost',6379,charset="utf-8", decode_responses=True)
@@ -20,24 +21,38 @@ class DBMS():
     #need test
     #function to search and return something from REDIS
     def searchAndReturnFromDB(self, timeFrom, timeTo):
-        print(timeFrom," ",timeTo)
-        indexingKeys=self.db.keys("*")
-        indexingKeys=list(map(int,indexingKeys))
-        indexingKeys.sort()
-        print(indexingKeys)
-        from_bound=bisect.bisect_left(indexingKeys, int(timeFrom))
-        to_bound=bisect.bisect_right(indexingKeys, int(timeTo))
-        print("indexing ready")
-        allNeededKeys=indexingKeys[from_bound:to_bound]
-        print("all needed keys is: ",allNeededKeys)
-        allValues=[]
-        for oneKey in allNeededKeys:
-            for i in range(0,self.db.llen(str(oneKey))):
-                allValues.append(self.db.lindex(str(oneKey),i))
+        try:
+            status="OK"
+            print(timeFrom," ",timeTo)
+            indexingKeys=self.db.keys("*")
+            indexingKeys=list(map(int,indexingKeys))
+            indexingKeys.sort()
+            print(indexingKeys)
+            from_bound=bisect.bisect_left(indexingKeys, int(timeFrom))
+            to_bound=bisect.bisect_right(indexingKeys, int(timeTo))
+            print("indexing ready")
+            allNeededKeys=indexingKeys[from_bound:to_bound]
+            print("all needed keys is: ",allNeededKeys)
+            allValues=[]
+            for oneKey in allNeededKeys:
+                for i in range(0,self.db.llen(str(oneKey))):
+                    allValues.append(self.db.lindex(str(oneKey),i))
+        except redis.exceptions.RedisError as e:
+            status=e
+        for i in range(len(allValues)):
+            url = urlparse(allValues[i])
+            if url.netloc != "":
+                allValues[i]=url.netloc
+            if allValues[i][:7]=="http://" or allValues[i][:8]=="https://":
+                print("delete")
+                allValues[i].replace(url.scheme,'')
+        allValues=list(dict.fromkeys(allValues))
+        answerDict={"domains":allValues,"status":status}
+        return(answerDict)
+
             #allValues.append(self.db.get(str(oneKey)))
             #print(self.db.get(str(oneKey)))
         
-        print(allValues[0])
 
 db=DBMS() #initialise Redis
 app = Flask(__name__) #initialise Flask
