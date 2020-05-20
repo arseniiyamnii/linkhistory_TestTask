@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from flask import Flask, request
+from flask import Flask, request, jsonify
 app = Flask(__name__)
 fromVar="nothing"
 @app.route('/')
@@ -9,6 +9,6 @@ def index():
 @app.route('/api')
 def api():
     fromVar=request.args.get('from')
-    return(fromVar)
+    return(jsonify(fromVar))
 if __name__ == '__main__':
     app.run(debug=True)
