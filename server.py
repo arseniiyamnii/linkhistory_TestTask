@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-from flask import Flask, request, jsonify
-import redis
-import json
+#import json
 import time
 import bisect
 from urllib.parse import urlparse
+import redis
+from flask import Flask, request, jsonify
 class DBMS():
     def __init__(self):
         self.db=redis.StrictRedis('localhost',6379,charset="utf-8", decode_responses=True)
@@ -13,9 +13,9 @@ class DBMS():
     def getAllKeys(self):
         indexingKeys=self.db.keys("*")
         indexingKeys=list(map(int,indexingKeys))
-        indexingKeys.sort()
         return indexingKeys
     def findNeededKeys(self,indexingKeys,fromVar,toVar):
+        indexingKeys.sort()
         from_bound=bisect.bisect_left(indexingKeys, int(fromVar))
         to_bound=bisect.bisect_right(indexingKeys, int(toVar))
         allNeededKeys=indexingKeys[from_bound:to_bound]
@@ -25,8 +25,11 @@ class DBMS():
             url = urlparse(urls[i])
             if url.netloc != "":
                 urls[i]=url.netloc
+            else:
+                urls[i]=urls[i].split("/")[0]
             if urls[i][:7]=="http://" or urls[i][:8]=="https://":
                 urls[i].replace(url.scheme,'')
+        urls=list(dict.fromkeys(urls))
         return(urls)
     #need test
     #function to sending something to REDIS
@@ -49,11 +52,11 @@ class DBMS():
         except redis.exceptions.RedisError as e:
             status=e
         allValues=self.domainParser(allValues)
-        allValues=list(dict.fromkeys(allValues))
+        
         answerDict={"domains":allValues,"status":status}
         return(answerDict)
 
-db=DBMS() #initialise Redis
+DB=DBMS() #initialise Redis
 app = Flask(__name__) #initialise Flask
 #need test
 @app.route('/')
@@ -63,18 +66,18 @@ def index():
 #function to get something in url, and answer somesting in json
 @app.route('/visited_domains')
 def visited_domains():
-    global db
+    global DB
     fromVar=request.args.get('from')
     toVar=request.args.get('to')
-    dbAnswer=db.searchAndReturnFromDB(fromVar,toVar)
+    dbAnswer=DB.searchAndReturnFromDB(fromVar,toVar)
     return(jsonify(dbAnswer))
 #need test
 #function to get something in json
 @app.route('/visited_links',methods=['POST'])
 def visited_links():
-    global db
+    global DB
     content=request.get_json()
-    db.sendToDB(content['links'])
+    DB.sendToDB(content['links'])
     #print(content['links'])
     return('DONE')
 if __name__ == '__main__':
