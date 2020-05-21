@@ -9,50 +9,49 @@ class DBMS():
     def __init__(self):
         self.db=redis.StrictRedis('localhost',6379,charset="utf-8", decode_responses=True)
         self.indexingKeys=[]
+
+    def getAllKeys(self):
+        indexingKeys=self.db.keys("*")
+        indexingKeys=list(map(int,indexingKeys))
+        indexingKeys.sort()
+        return indexingKeys
+    def findNeededKeys(self,indexingKeys,fromVar,toVar):
+        from_bound=bisect.bisect_left(indexingKeys, int(fromVar))
+        to_bound=bisect.bisect_right(indexingKeys, int(toVar))
+        allNeededKeys=indexingKeys[from_bound:to_bound]
+        return allNeededKeys
+    def domainParser(self,urls):
+        for i in range(len(urls)):
+            url = urlparse(urls[i])
+            if url.netloc != "":
+                urls[i]=url.netloc
+            if urls[i][:7]=="http://" or urls[i][:8]=="https://":
+                urls[i].replace(url.scheme,'')
+        return(urls)
     #need test
     #function to sending something to REDIS
     def sendToDB(self, content):
-        print(content[0])
         timeStamp=int(time.time()) #get current time
         for i in content:
             self.db.lpush(timeStamp,i)
-        #contentJson=json.dumps(content)
-        #self.db.set(timeStamp, contentJson)
+
     #need test
     #function to search and return something from REDIS
     def searchAndReturnFromDB(self, timeFrom, timeTo):
         try:
             status="OK"
-            print(timeFrom," ",timeTo)
-            indexingKeys=self.db.keys("*")
-            indexingKeys=list(map(int,indexingKeys))
-            indexingKeys.sort()
-            print(indexingKeys)
-            from_bound=bisect.bisect_left(indexingKeys, int(timeFrom))
-            to_bound=bisect.bisect_right(indexingKeys, int(timeTo))
-            print("indexing ready")
-            allNeededKeys=indexingKeys[from_bound:to_bound]
-            print("all needed keys is: ",allNeededKeys)
+            indexingKeys=self.getAllKeys()
+            allNeededKeys=self.findNeededKeys(indexingKeys,timeFrom,timeTo)
             allValues=[]
             for oneKey in allNeededKeys:
                 for i in range(0,self.db.llen(str(oneKey))):
                     allValues.append(self.db.lindex(str(oneKey),i))
         except redis.exceptions.RedisError as e:
             status=e
-        for i in range(len(allValues)):
-            url = urlparse(allValues[i])
-            if url.netloc != "":
-                allValues[i]=url.netloc
-            if allValues[i][:7]=="http://" or allValues[i][:8]=="https://":
-                print("delete")
-                allValues[i].replace(url.scheme,'')
+        allValues=self.domainParser(allValues)
         allValues=list(dict.fromkeys(allValues))
         answerDict={"domains":allValues,"status":status}
         return(answerDict)
-
-            #allValues.append(self.db.get(str(oneKey)))
-            #print(self.db.get(str(oneKey)))
-        
 
 db=DBMS() #initialise Redis
 app = Flask(__name__) #initialise Flask
@@ -65,12 +64,9 @@ def index():
 @app.route('/visited_domains')
 def visited_domains():
     global db
-    #fromVar=request.args.get()
     fromVar=request.args.get('from')
     toVar=request.args.get('to')
-    #toVar=request.args.get('to', type=int)
     dbAnswer=db.searchAndReturnFromDB(fromVar,toVar)
-    print(dbAnswer)
     return(jsonify(dbAnswer))
 #need test
 #function to get something in json
