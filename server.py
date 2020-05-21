@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-#import json
 import time
 import bisect
 from urllib.parse import urlparse
@@ -31,15 +30,12 @@ class DBMS():
                 urls[i].replace(url.scheme,'')
         urls=list(dict.fromkeys(urls))
         return(urls)
-    #need test
-    #function to sending something to REDIS
+
     def sendToDB(self, content):
         timeStamp=int(time.time()) #get current time
         for i in content:
             self.db.lpush(timeStamp,i)
 
-    #need test
-    #function to search and return something from REDIS
     def searchAndReturnFromDB(self, timeFrom, timeTo):
         try:
             status="OK"
@@ -52,7 +48,6 @@ class DBMS():
         except redis.exceptions.RedisError as e:
             status=e
         allValues=self.domainParser(allValues)
-        
         answerDict={"domains":allValues,"status":status}
         return(answerDict)
 
@@ -62,8 +57,7 @@ app = Flask(__name__) #initialise Flask
 @app.route('/')
 def index():
     return("use /visited_domains and /visited_links")
-#need test
-#function to get something in url, and answer somesting in json
+
 @app.route('/visited_domains')
 def visited_domains():
     global DB
@@ -71,14 +65,12 @@ def visited_domains():
     toVar=request.args.get('to')
     dbAnswer=DB.searchAndReturnFromDB(fromVar,toVar)
     return(jsonify(dbAnswer))
-#need test
-#function to get something in json
+
 @app.route('/visited_links',methods=['POST'])
 def visited_links():
     global DB
     content=request.get_json()
     DB.sendToDB(content['links'])
-    #print(content['links'])
     return('DONE')
 if __name__ == '__main__':
     app.run(debug=True)
