@@ -1,8 +1,8 @@
 # linksserver  
-## Requirements  
+## Зависимости и как их установить  
 
 python3 `sudo apt install python3`  
-redis
+redis  
 ```
 curl -s -0 redis-stable.tar.gz "http://download.redis.io/redis-stable.tar.gz"
 sudo mkdir -p /usr/local/lib
@@ -15,37 +15,49 @@ sudo make install
 sudo mkdir -p /etc/redis/
 sudo touch /etc/redis/6379.conf
 ```  
-then insert this:
+Далее вставьте это:  
 '''
-'''
-into `/etc/redis/6379.conf`
-run redis `redis-server /etc/redis/6379.conf`
+# /etc/redis/6379.conf
+ 
+port              6379
+daemonize         yes
+save              60 1
+bind              127.0.0.1
+tcp-keepalive     300
+dbfilename        dump.rdb
+dir               ./
+rdbcompression    yes
+'''  
+в `/etc/redis/6379.conf`  
+Запускаем redis `redis-server /etc/redis/6379.conf`  
 
-python packages:  
-flask `pip3 install flask`
-redis `pip3 install redis-py`
+python3 модули:  
+flask `pip3 install flask`  
+redis `pip3 install redis-py`  
 
-## Parameters:
-Redis run at `localhost:6357`
-Flask run at `localhost:5000`
-## How to use:
-walk to project dirrectory
-run server with:
-`./server.py` or `python3 server.py`
-or tests with:
-`./tests.py` or `python3 tests.py`
-when your server alredy run, you can check it in your browser, with:
+## Параметры сервера:
+Redis запускается на `localhost:6357`  
+Flask запускается на `localhost:5000`  
+Redis использует базу данных по умолчанию `0`  
+## Как это использовать:
+Переходим в дирректорию проекта  
+Запускаем сервер:  
+`./server.py` или `python3 server.py`  
+или тестируем его с поомощью:  
+`./tests.py` или `python3 tests.py`  
+!!!Внимание!!! Redis должен быть запущен !!!  
+Когда ваш сервер запущен, вы можете проверить его в браузере:  
 `http://localhost:5000/`
-You see small tip about using this server
-### Sending links to server:
-use POST request to sending links
-Exemple with CURL:
-`curl --header "Content-Type: application/json" --request POST --data '{"links":["http://ya.ru","funbox.ru","http://google.com","https://sososo.ru/somasoma"]}' localhost:5000/visited_links`
-we send few links in json with POST method
-### Get links from date range:
-Example with CURL:
-`curl 'localhost:5000/visited_domains?from=1590010422&to=1599999999'`
-date range using in UNIX format. Only first 10 digits
+Вы увидите маленькую подсказку по работе сервера  
+### Отправка ссылок на сервер:
+Используйте POST запрос для отправки ссылок  
+Пример запроса через CURL:  
+`curl --header "Content-Type: application/json" --request POST --data '{"links":["http://ya.ru","funbox.ru","http://google.com","https://sososo.ru/somasoma"]}' localhost:5000/visited_links`  
+Готово! Мы отправили ссылки на сервер!  
+### Взять ссылки с сервера за определенный период:
+Пример с помощью CURL:  
+`curl 'localhost:5000/visited_domains?from=1590010422&to=1599999999'`  
+Дата исползуется в UNIX формате. Используются только первые 10 знаков  
 
-##Why i need that?
-Example. You can create small extencion for Browser, to gram all visited url, and store them in yur server. For examle for child control.
+##Зачем мне все это?
+Например вы можете создать маленкое расширение для браузера, для сохранения всех посещенных ссылок. С помощью него вы можете мониторить что посещает ваш ребенок
